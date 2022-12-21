@@ -3,7 +3,7 @@
 #include <drivers/clock_control.h>
 #include <drivers/clock_control/nrf_clock_control.h>
 
-
+#include <logging/log.h>
 #include <nrf.h>
 
 // initialize radio with default for unifying
@@ -16,6 +16,24 @@
 // such as making sure no events are being processed (ie. rx even)
 // and perhaps disabling interrupts in the meantime
 
+LOG_MODULE_REGISTER(radio_controls, CONFIG_ESB_PRX_APP_LOG_LEVEL); // how does this work?
+
+RadioControls::RadioControls() {
+	// initialize radio
+	int err = clocks_start();
+	if (err) {
+		LOG_DBG("Clock start failed: %d", err);
+		return;
+	}
+
+	err = esb_initialize();
+	if (err) {
+		LOG_DBG("ESB initialization failed: %d", err);
+		return;
+	}
+
+	//LOG_INF("ESB RX mode started");
+}
 
 int RadioControls::clocks_start(void)
 {
@@ -26,7 +44,7 @@ int RadioControls::clocks_start(void)
 
 	clk_mgr = z_nrf_clock_control_get_onoff(CLOCK_CONTROL_NRF_SUBSYS_HF);
 	if (!clk_mgr) {
-		//LOG_ERR("Unable to get the Clock manager");
+		LOG_DBG("Unable to get the Clock manager");
 		return -ENXIO;
 	}
 
@@ -34,14 +52,14 @@ int RadioControls::clocks_start(void)
 
 	err = onoff_request(clk_mgr, &clk_cli);
 	if (err < 0) {
-		//LOG_ERR("Clock request failed: %d", err);
+		LOG_DBG("Clock request failed: %d", err);
 		return err;
 	}
 
 	do {
 		err = sys_notify_fetch_result(&clk_cli.notify, &res);
 		if (!err && res) {
-			//LOG_ERR("Clock could not be started: %d", res);
+			LOG_DBG("Clock could not be started: %d", res);
 			return res;
 		}
 	} while (err);
@@ -78,8 +96,6 @@ int RadioControls::esb_initialize(void)
 	uint8_t addr_prefix[8] = {0x75, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8};
 
 	struct esb_config config = ESB_DEFAULT_CONFIG;
-
-	
 
 	err = esb_init(&config);
 	if (err) {

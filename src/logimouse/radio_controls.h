@@ -22,8 +22,10 @@ class RadioControls {
 
     public: 
         RadioControls(); // initialize radio on nrf device
-        int esb_set_rf_channel(uint32_t channel); // set rf channel to first element in array of unifying
+    
         // could be a helper function like set_rf(uint32 channel); and implementation file calls esb.h defined one
+
+        
 
 }; // namespace controls::radio
 
